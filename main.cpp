@@ -32,24 +32,17 @@ int main() {
     auto s = std::chrono::high_resolution_clock::now();
     if (turn % 2 == 0) {
       move = bzz::best_move(gamestate.bitboard(), 8, &tt, &rr,
-                            heuristic::EVAL_DRAW_CONTEMT);
+                            heuristic::EVAL_DRAW);
     } else {
-      move = bzz::best_move(gamestate.bitboard(), 8, &tt, &rr, heuristic::EVAL_DRAW_CONTEMT);
+      move = bzz::best_move(gamestate.bitboard(), 8, &tt, &rr, heuristic::EVAL_DRAW);
     }
 
     auto e = std::chrono::high_resolution_clock::now();
     auto d =
         std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(e -
                                                                              s);
-    if (turn % 2 == 0) {
-      printf("whites-turn: %d    [took: %fms]\n", turn, d.count());
-      print_bitboard(gamestate.bitboard());
-    } else {
-      printf("blacks-turn: %d    [took: %fms]\n", turn, d.count());
-      bitboard_t board = gamestate.bitboard();
-      std::swap(board.white, board.black);
-      print_bitboard(board);
-    }
+
+    std::cout.flush();
 
     if (move.from == 0 && move.to == 0) {
       if (turn % 2 == 0) {
@@ -65,6 +58,18 @@ int main() {
     }
 
     gamestate.turn(move);
+
+    if (turn % 2 == 0) {
+      // printf("whites-turn: %d    [took: %fms]\n", turn, d.count());
+      printf("[took: %fms]\n", d.count());
+      print_bitboard(gamestate.bitboard());
+    } else {
+      // printf("blacks-turn: %d    [took: %fms]\n", turn, d.count());
+      printf("[took: %fms]\n", d.count());
+      bitboard_t board = gamestate.bitboard();
+      std::swap(board.white, board.black);
+      print_bitboard(board);
+    }
 
     ++turn;
   }

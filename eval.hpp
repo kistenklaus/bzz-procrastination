@@ -16,13 +16,12 @@ using eval_t = int32_t;
 constexpr eval_t EVAL_WON = 10000;
 constexpr eval_t EVAL_LOST = -EVAL_WON;
 constexpr eval_t EVAL_DRAW = -500;
-constexpr eval_t EVAL_DRAW_CONTEMT = -500; // draw is essentially as bad as losing.
 
 constexpr eval_t EVAL_IMMOVABLE_PIECE = 100;
 
 static __attribute__((always_inline)) inline eval_t eval(bitboard_t bitboard) {
 
-  const bitmask_t occupant = bitboard.white | bitboard.black;
+  const bitmask_t occupant = bitboard.white | bitboard.black | movegen::table::BITBOARD_SPECIAL_MASK;
 
   const bitmask_t blockers1 = occupant | ~movegen::table::BITBOARD_FIELDS_MASK;
   const bitmask_t blockers0 =

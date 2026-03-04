@@ -31,6 +31,7 @@ constexpr bitmask_t BITBOARD_LEFT_BORDER = 0x40810204104104ull;
 // constexpr bitmask_t BITBOARD_OUTSIDE_MASK = 0x63860A4012830E3ull; // 21,24,34,37
 // constexpr bitmask_t BITBOARD_OUTSIDE_MASK = 0x6386080200830E3ull; // 29
 constexpr bitmask_t BITBOARD_OUTSIDE_MASK = 0x6386080000830E3ull;
+constexpr bitmask_t BITBOARD_SPECIAL_MASK = 0;
 constexpr bitmask_t BITBOARD_PADDING_MASK = 0xF800000000000000ull;
 constexpr bitmask_t BITBOARD_FIELDS_MASK =
     ~(BITBOARD_OUTSIDE_MASK | BITBOARD_PADDING_MASK);
@@ -128,7 +129,7 @@ static constexpr size_t SIZE =
 
 static uint64_t count_moves(bitboard_t bitboard) {
   uint64_t count = 0;
-  const bitmask_t occupant = bitboard.white | bitboard.black;
+  const bitmask_t occupant = bitboard.white | bitboard.black | table::BITBOARD_SPECIAL_MASK;
   const bitmask_t blockers1 = occupant | ~table::BITBOARD_FIELDS_MASK;
   const bitmask_t blockers0 = occupant | ~(table::BITBOARD_FIELDS_MASK | 1ull);
 
@@ -188,7 +189,7 @@ static uint64_t count_moves(bitboard_t bitboard) {
 
 static uint32_t enumerate_moves(bitboard_t bitboard, move_t *const out_moves) {
   move_t *it = out_moves;
-  const bitmask_t occupant = bitboard.white | bitboard.black;
+  const bitmask_t occupant = bitboard.white | bitboard.black | table::BITBOARD_SPECIAL_MASK;
   const bitmask_t blockers1 = occupant | ~table::BITBOARD_FIELDS_MASK;
   const bitmask_t blockers0 = occupant | ~(table::BITBOARD_FIELDS_MASK | 1ull);
 
