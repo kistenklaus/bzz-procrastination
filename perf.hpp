@@ -3,6 +3,8 @@
 #include "bitboard.hpp"
 #include "bot.hpp"
 #include "minmax.hpp"
+#include "repetition.hpp"
+#include "transposition_table.hpp"
 #include <chrono>
 #include <cstdint>
 #include <iostream>
@@ -45,9 +47,11 @@ static void perfT() {
 
 static void minmax_perfT() {
 
+  TranspositionTable tt(1 << 22);
   for (uint32_t d = 1; d < 30; ++d) {
+    Repetition rr;
     auto s = std::chrono::high_resolution_clock::now();
-    bzz::best_move(BITBOARD_START_POSITION, d);
+    bzz::best_move(BITBOARD_START_POSITION, d, &tt, &rr, 0);
     auto e = std::chrono::high_resolution_clock::now();
     auto latency =
         std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(e -

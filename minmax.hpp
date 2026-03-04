@@ -3,13 +3,17 @@
 #include "bitboard.hpp"
 #include "eval.hpp"
 #include "hash.hpp"
+#include "movegen.hpp"
+#include "repetition.hpp"
 #include "transposition_table.hpp"
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 
 namespace bzz {
 
-static constexpr size_t MAX_MOVES = 40;
+static constexpr size_t MAX_MOVES = 100;
 
 static heuristic::eval_t
 naive_negamax(bitboard_t bitboard, uint32_t depth,
@@ -69,7 +73,9 @@ static heuristic::eval_t negamax(bitboard_t bitboard, uint32_t depth,
     return heuristic::eval(bitboard);
   }
   move_t moves[MAX_MOVES];
+  assert(movegen::count_moves(bitboard) < MAX_MOVES);
   uint32_t move_count = movegen::enumerate_moves(bitboard, moves);
+
 
   if (move_count == 0) {
     return heuristic::EVAL_LOST;
@@ -122,12 +128,17 @@ static heuristic::eval_t negamax(bitboard_t bitboard, uint32_t depth,
 
 static heuristic::eval_t negascout(bitboard_t bitboard, uint32_t depth,
                                    TranspositionTable *tt,
+                                   Repetition* rr,
                                    heuristic::eval_t alpha,
                                    heuristic::eval_t beta) {
   heuristic::eval_t alpha0 = alpha;
   heuristic::eval_t beta0 = beta;
 
   uint64_t key = hash::hash_pos(bitboard);
+
+  if (rr->would_draw(key)) {
+    return heuristic::EVAL_DRAW;
+  }
 
   auto *tte = tt->probe(key);
   if (tte && tte->depth >= depth) {
@@ -147,6 +158,7 @@ static heuristic::eval_t negascout(bitboard_t bitboard, uint32_t depth,
     }
   }
 
+
   if (depth == 0) {
     return heuristic::eval(bitboard);
   }
@@ -157,6 +169,7 @@ static heuristic::eval_t negascout(bitboard_t bitboard, uint32_t depth,
     return heuristic::EVAL_LOST;
   }
 
+
   heuristic::eval_t best = heuristic::EVAL_LOST;
   bitmask_t best_move = moves[0];
   bitmask_t killer_move = 0;
@@ -166,12 +179,13 @@ static heuristic::eval_t negascout(bitboard_t bitboard, uint32_t depth,
   } else {
     const bool pv_node = (beta - alpha) > 1;
     if (pv_node && depth >= 6) {
-      negascout(bitboard, depth - 2, tt, alpha, beta);
+      negascout(bitboard, depth - 2, tt,rr, alpha, beta);
       if (auto *e2 = tt->probe(key)) {
         killer_move = e2->best_move;
       }
     }
   }
+  rr->push(key);
 
   if (killer_move) {
     // we have a good candidate for a the best move.
@@ -191,7 +205,7 @@ static heuristic::eval_t negascout(bitboard_t bitboard, uint32_t depth,
     };
 
     // full window on tte move.
-    heuristic::eval_t score = -negascout(next, depth - 1, tt, -beta, -alpha);
+    heuristic::eval_t score = -negascout(next, depth - 1, tt,rr, -beta, -alpha);
     best = score;
     best_move = killer_move;
     alpha = std::max(alpha, score);
@@ -207,11 +221,11 @@ static heuristic::eval_t negascout(bitboard_t bitboard, uint32_t depth,
         };
         // null window search
         heuristic::eval_t score =
-            -negascout(next, depth - 1, tt, -(alpha + 1), -alpha);
+            -negascout(next, depth - 1, tt, rr,-(alpha + 1), -alpha);
 
         if (score > alpha && score < beta) {
           // full window search
-          score = -negascout(next, depth - 1, tt, -beta, -alpha);
+          score = -negascout(next, depth - 1, tt, rr, -beta, -alpha);
         }
 
         if (score > best) {
@@ -231,7 +245,7 @@ static heuristic::eval_t negascout(bitboard_t bitboard, uint32_t depth,
           .white = bitboard.black,
           .black = moves[m],
       };
-      heuristic::eval_t score = -negascout(next, depth - 1, tt, -beta, -alpha);
+      heuristic::eval_t score = -negascout(next, depth - 1, tt, rr, -beta, -alpha);
       if (score > best) {
         best = score;
         best_move = moves[m];
@@ -251,6 +265,8 @@ static heuristic::eval_t negascout(bitboard_t bitboard, uint32_t depth,
     flag = TranspositionTable::Flag::EXACT;
   }
   tt->store(key, best_move, best, depth, flag);
+
+  rr->pop(key);
   return best;
 }
 

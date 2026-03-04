@@ -26,6 +26,10 @@ constexpr bitmask_t BITBOARD_RIGHT_BORDER = 0x104104102040810ull;
 constexpr bitmask_t BITBOARD_BOTTOM_RIGHT_BORDER = 0x1C4104100000000ull;
 constexpr bitmask_t BITBOARD_BOTTOM_LEFT_BORDER = 0x1C0810204000000ull;
 constexpr bitmask_t BITBOARD_LEFT_BORDER = 0x40810204104104ull;
+
+// blocker mask
+// constexpr bitmask_t BITBOARD_OUTSIDE_MASK = 0x63860A4012830E3ull; // 21,24,34,37
+// constexpr bitmask_t BITBOARD_OUTSIDE_MASK = 0x6386080200830E3ull; // 29
 constexpr bitmask_t BITBOARD_OUTSIDE_MASK = 0x6386080000830E3ull;
 constexpr bitmask_t BITBOARD_PADDING_MASK = 0xF800000000000000ull;
 constexpr bitmask_t BITBOARD_FIELDS_MASK =
@@ -138,6 +142,11 @@ static uint64_t count_moves(bitboard_t bitboard) {
     const bitmask_t nb = ~b;
     const int cnt = std::popcount(n);
 
+    [[unlikely]]
+    if (cnt == 6) {
+      continue; // <- bad branch
+    }
+
     const bitmask_t blockers1_nb = blockers1 & nb;
     const bitmask_t blockers0_nb = blockers0 & nb;
 
@@ -196,6 +205,10 @@ static uint32_t enumerate_moves(bitboard_t bitboard, move_t *const out_moves) {
     const bitmask_t nb = ~b;
     // amount of neighbors.
     const int cnt = std::popcount(n);
+    [[unlikely]]
+    if (cnt == 6) {
+      continue; // <- bad branch
+    }
 
     const bitmask_t blockers1_nb = blockers1 & nb;
     const bitmask_t blockers0_nb = blockers0 & nb;
